@@ -97,6 +97,10 @@ class MyApp(App):
         self.query_one(ClipboardWatcher).clipboard_update(message.clipboard_text)
 
 
-if __name__ == "__main__":
+def main():
     app = MyApp()
     app.run()
+
+
+if __name__ == "__main__":
+    main()
