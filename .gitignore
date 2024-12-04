@@ -1,2 +1,3 @@
 build/
 clipboard_demo.egg-info/
+__pycache__/
