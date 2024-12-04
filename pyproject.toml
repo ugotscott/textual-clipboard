@@ -11,4 +11,4 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-clipboard_demo = "clipboard_demo.text_clipboard:main"
+clipboard-demo = "clipboard_demo.text_clipboard:main"
