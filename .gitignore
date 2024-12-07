@@ -1,3 +1,4 @@
 build/
-clipboard_demo.egg-info/
+c*demo.egg-info/
 __pycache__/
+.DS_Store
