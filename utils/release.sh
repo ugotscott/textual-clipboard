@@ -49,7 +49,7 @@ answered_yes() {
         yn_prompt="Continue?"
     fi
     while true; do
-        read -p "${yn_prompt} (y/n) " yn
+        read -r -p "${yn_prompt} (y/n) " yn
         case $yn in
         [Yy]*) return 0 ;;
         [Nn]*) return 1 ;;

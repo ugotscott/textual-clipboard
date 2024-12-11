@@ -1,4 +1,4 @@
-from textual.widgets import Input, Button, DataTable, Log, Header, Footer
+from textual.widgets import Input, Button, DataTable, RichLog, Header, Footer
 from textual.app import App, ComposeResult
 from textual.containers import Horizontal
 import subprocess
@@ -23,12 +23,6 @@ def latest_release_tag() -> str:
     # tag 0.0.0
     # Non annotated tags will be prefixed with "commit":
     # commit sometag
-    return UNKNOWN
-
-
-def current_branch() -> str:
-    # git rev-parse --abbrev-ref HEAD
-    # This will return branch name, we want "main"
     return UNKNOWN
 
 
@@ -71,6 +65,7 @@ REL_STR_ROWS = [
 GIT_ROWS = [
     ("item", "value", "status"),
     ("latest release tag", UNKNOWN, NOT_OK),
+    ("current branch", UNKNOWN, NOT_OK),
     ("up-to-date", UNKNOWN, NOT_OK),
     ("not tracked items", UNKNOWN, NOT_OK),
     ("not comitted items", UNKNOWN, NOT_OK),
@@ -113,12 +108,12 @@ class MyApp(App):
             yield git_table
 
         with Horizontal(id="logs"):
-            git_status = Log()
+            git_status = RichLog(highlight=True, markup=True)
             git_status.id = "gitstatus"
             git_status.border_title = "Git Status"
             yield git_status
 
-            cmd_log = Log()
+            cmd_log = RichLog(highlight=True, markup=True)
             cmd_log.id = "cmdlog"
             cmd_log.border_title = "Command Log"
             yield cmd_log
@@ -145,53 +140,85 @@ class MyApp(App):
             table.add_row(*row, key=row[0])
 
     def on_ready(self) -> None:
-        self.git_status()
+        git_status(self)
+        branch_check(self)
         if self.query_one("#newversion", Input).value:
             self.run_checks()
 
     def on_input_changed(self, message: Input.Changed) -> None:
         if message.input.id == "newversion":
-            self.format_check()
+            format_check(self)
 
     def on_input_submitted(self, message: Input.Submitted) -> None:
         if message.input.id == "newversion":
             self.run_checks()
 
     def run_checks(self) -> None:
-        self.format_check()
+        format_check(self)
+        branch_check(self)
 
-    def git_status(self) -> None:
-        cmd = ["git", "status"]
-        cmd_log = self.query_one("#cmdlog", Log)
-        cmd_log.write_line(f"$ {' '.join(cmd)}")
-        result = subprocess.run(cmd, check=False, text=True, capture_output=True)
-        status_log = self.query_one("#gitstatus", Log)
-        status_log.clear()
-        if result.returncode:
-            for line in result.stderr.splitlines():
-                cmd_log.write_line(line)
-                status_log.write_line(line)
-        else:
-            for line in result.stdout.splitlines():
-                cmd_log.write_line(line)
-                status_log.write_line(line)
 
-    def format_check(self) -> None:
-        new_ver_input = self.query_one("#newversion", Input)
-        ver_str_table = self.query_one("#verstring", DataTable)
-        if re.match(r"^\d+\.\d+\.\d+$", new_ver_input.value):
-            new_val = OK
-        else:
-            new_val = NOT_OK
-        ver_str_table.update_cell(
-            value=new_ver_input.value,
-            column_key="value",
-            row_key="format",
-            update_width=True,
-        )
-        ver_str_table.update_cell(
-            value=new_val, column_key="status", row_key="format", update_width=True
-        )
+def git_status(app: MyApp) -> None:
+    cmd = ["git", "status"]
+    cmd_log = app.query_one("#cmdlog", RichLog)
+    cmd_log.write(f"[bold {app.current_theme.secondary}]$ {' '.join(cmd)}")
+    result = subprocess.run(cmd, check=False, text=True, capture_output=True)
+    status_log = app.query_one("#gitstatus", RichLog)
+    status_log.clear()
+    if result.returncode:
+        for line in result.stderr.splitlines():
+            cmd_log.write(f"[{app.current_theme.error}]{line}")
+            status_log.write(f"[{app.current_theme.error}]{line}")
+    else:
+        for line in result.stdout.splitlines():
+            cmd_log.write(line)
+            status_log.write(line)
+
+
+def format_check(app: MyApp) -> None:
+    new_ver_input = app.query_one("#newversion", Input)
+    ver_str_table = app.query_one("#verstring", DataTable)
+    if re.match(r"^\d+\.\d+\.\d+$", new_ver_input.value):
+        new_val = OK
+    else:
+        new_val = NOT_OK
+    ver_str_table.update_cell(
+        value=new_ver_input.value,
+        column_key="value",
+        row_key="format",
+        update_width=True,
+    )
+    ver_str_table.update_cell(
+        value=new_val, column_key="status", row_key="format", update_width=True
+    )
+
+
+def branch_check(app: MyApp) -> None:
+    # git rev-parse --abbrev-ref HEAD
+    # This will return branch name, we want "main"
+    cmd = ["git", "rev-parse", "--abbrev-ref", "HEAD"]
+    cmd_log = app.query_one("#cmdlog", RichLog)
+    cmd_log.write(f"[bold {app.current_theme.secondary}]$ {' '.join(cmd)}")
+    result = subprocess.run(cmd, check=False, text=True, capture_output=True)
+    branch = [UNKNOWN]
+    status = NOT_OK
+    if result.returncode:
+        for line in result.stderr.splitlines():
+            cmd_log.write(
+                content=f"[{app.current_theme.error}]{line}",
+                scroll_end=True,
+                animate=True,
+            )
+    else:
+        branch = []
+        for line in result.stdout.splitlines():
+            branch.append(line)
+            cmd_log.write(line)
+    if branch[0] == "main":
+        status = OK
+    git_table = app.query_one("#git", DataTable)
+    git_table.update_cell(column_key="value", row_key="current branch", value=branch[0])
+    git_table.update_cell(column_key="status", row_key="current branch", value=status)
 
 
 def main():
