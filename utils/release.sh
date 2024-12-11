@@ -6,6 +6,43 @@ if [ -z "${_new_version}" ]; then
     exit 1
 fi
 
+_verok=$(echo "${_new_version}" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$')
+if [ -z "${_verok}" ]; then
+    echo "ERROR: \"${_new_version}\" is not a valid version format."
+    exit 1
+fi
+
+_gtag=$(git tag -l "${_new_version}")
+if [ -n "${_gtag}" ]; then
+    echo "ERROR: ${_new_version} already exists as a git tag."
+    exit 1
+fi
+
+_projver=$(grep -E 'version[ ]+=[ ]+' pyproject.toml | grep -Eo '[0-9]+\.[0-9]+\.[0-9]+')
+if [ -z "${_projver}" ]; then
+    echo "ERROR: Unable to read project version from \"pyproject.toml\"."
+    exit 1
+fi
+
+echo "INFO: Project version found in \"pyproject.toml\" is \"${_projver}\""
+
+_branch=$(git rev-parse --abbrev-ref HEAD)
+if [ "${_branch}" != "main" ]; then
+    echo "ERROR: Apparently you are on branch \"${_branch}\". To release you need to be on branch \"main\"."
+    exit 1
+fi
+
+if ! git fetch; then
+    echo "ERROR: git fetch command failed."
+    exit 1
+fi
+
+if ! git diff --quiet; then
+    echo "ERROR: The source area appears to be out-of-date:"
+    git status --porcelain
+    exit 1
+fi
+
 answered_yes() {
     yn_prompt="${1}"
     if [ -z "${yn_prompt}" ]; then
@@ -20,22 +57,6 @@ answered_yes() {
         esac
     done
 }
-
-_branch=$(git rev-parse --abbrev-ref HEAD)
-if [ "${_branch}" != "main" ]; then
-    echo "ERROR: Apparently you are on branch \"${_branch}\". To release you need to be on branch \"main\"."
-    exit 1
-fi
-
-if ! git fetch; then
-    echo "ERROR: git fetch command failed."
-    exit 1
-fi
-
-if ! git diff --quiet; then
-    echo "ERROR: The source area appears to be out-of-date."
-    exit 1
-fi
 
 _untracked=$(git status --porcelain --untracked-files)
 if [ -n "${_untracked}" ]; then

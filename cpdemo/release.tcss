@@ -1,0 +1,52 @@
+DataTable {
+    border: round $secondary;
+    width: auto;
+    min-width: 32;
+    min-height: 7;
+}
+
+Log {
+    border: round $secondary;
+    width: auto;
+    overflow: auto auto;
+    min-width: 32;
+    min-height: 7;
+}
+
+#newversion {
+    border: solid heavy $secondary;
+    width: auto;
+    min-width: 32;
+}
+
+#additional {
+    color: $secondary;
+    border: 20%;
+}
+
+#release {
+    color: $secondary;
+    border: 20%;
+}
+
+.allpass #release {
+    color: $secondary;
+    border: 20%;
+}
+
+#rerun {
+    color: $secondary;
+    border: 20%;
+}
+
+#input {
+    height: auto;
+}
+
+#checks {
+    height: auto;
+}
+
+#logs {
+    height: auto;
+}
