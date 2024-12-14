@@ -13,7 +13,13 @@ RichLog {
 }
 
 #newversion {
-    border: solid heavy $secondary;
+    border: solid heavy $primary;
+    width: auto;
+    min-width: 32;
+}
+
+#relbranch {
+    border: solid heavy $primary;
     width: auto;
     min-width: 32;
 }
